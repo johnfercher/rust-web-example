@@ -2,9 +2,11 @@ use super::data::{
     ActivitiesResponse, ActivityRequest, ActivityResponse, EditActivityRequest, ErrorListResponse,
 };
 use super::external;
+use super::insults;
 use super::AppState;
 use actix_web::{error, Error, HttpRequest, HttpResponse, Json, Path, Responder};
 use failure::Fail;
+use crate::data::InsultResponse;
 
 #[derive(Fail, Debug)]
 pub enum AnalyzerError {
@@ -44,11 +46,24 @@ pub fn json_error_handler(err: error::JsonPayloadError, _: &HttpRequest<AppState
 pub fn get_activities(
     req: &HttpRequest<AppState>,
 ) -> Result<Json<ActivitiesResponse>, AnalyzerError> {
-    let jwt = &req.state().jwt;
+    //let jwt = &req.state().jwt;
     let log = &req.state().log;
-    external::get_activities(jwt)
+    external::get_activities()
         .map_err(|e| {
             error!(log, "Get Activities ExternalServiceError {}", e);
+            AnalyzerError::ExternalServiceError
+        })
+        .map(Json)
+}
+
+pub fn get_insults(
+    req: &HttpRequest<AppState>,
+) -> Result<Json<InsultResponse>, AnalyzerError> {
+    //let jwt = &req.state().jwt;
+    let log = &req.state().log;
+    insults::get_insult()
+        .map_err(|e| {
+            error!(log, "Get Insults ExternalServiceError {}", e);
             AnalyzerError::ExternalServiceError
         })
         .map(Json)
@@ -57,9 +72,8 @@ pub fn get_activities(
 pub fn get_activity(
     (req, activity_id): (HttpRequest<AppState>, Path<String>),
 ) -> Result<Json<ActivityResponse>, AnalyzerError> {
-    let jwt = &req.state().jwt;
     let log = &req.state().log;
-    external::get_activity(&activity_id, jwt)
+    external::get_activity(&activity_id)
         .map_err(|e| {
             error!(log, "Get Activity Error: {}", e);
             e
@@ -70,10 +84,9 @@ pub fn get_activity(
 pub fn create_activity(
     (req, activity): (HttpRequest<AppState>, Json<ActivityRequest>),
 ) -> Result<Json<ActivityResponse>, AnalyzerError> {
-    let jwt = &req.state().jwt;
     let log = &req.state().log;
     info!(log, "creating activity {:?}", activity);
-    external::create_activity(&activity, jwt)
+    external::create_activity(&activity)
         .map_err(|e| {
             error!(log, "Create Activity ExternalServiceError {}", e);
             AnalyzerError::ExternalServiceError
@@ -88,10 +101,9 @@ pub fn edit_activity(
         Path<String>,
     ),
 ) -> Result<Json<ActivityResponse>, AnalyzerError> {
-    let jwt = &req.state().jwt;
     let log = &req.state().log;
     info!(log, "editing activity {:?}", activity);
-    external::edit_activity(&activity_id, &activity, jwt)
+    external::edit_activity(&activity_id, &activity)
         .map_err(|e| {
             error!(log, "Edit Activity ExternalServiceError {}", e);
             AnalyzerError::ExternalServiceError
@@ -102,10 +114,9 @@ pub fn edit_activity(
 pub fn delete_activity(
     (req, activity_id): (HttpRequest<AppState>, Path<String>),
 ) -> Result<Json<ErrorListResponse>, AnalyzerError> {
-    let jwt = &req.state().jwt;
     let log = &req.state().log;
     info!(log, "deleting activity {}", activity_id);
-    external::delete_activity(&activity_id, jwt)
+    external::delete_activity(&activity_id)
         .map_err(|e| {
             error!(log, "Delete Activity ExternalServiceError {}", e);
             AnalyzerError::ExternalServiceError
