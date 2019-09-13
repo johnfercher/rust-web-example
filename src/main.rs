@@ -19,27 +19,14 @@ use std::io::prelude::*;
 use std::io::BufReader;
 
 mod data;
-mod external;
 mod handlers;
 mod logging;
 mod insults;
 
-const SECRETS_FILE: &str = "./me.secret";
-
 use envconfig::Envconfig;
-
-#[derive(Envconfig)]
-pub struct Config {
-    #[envconfig(from = "API_KEY", default = "")]
-    pub api_key: String,
-
-    #[envconfig(from = "API_SECRET", default = "")]
-    pub api_secret: String,
-}
 
 #[derive(Debug)]
 pub struct AppState {
-    //jwt: String,
     log: slog::Logger,
 }
 
@@ -48,7 +35,6 @@ fn main() {
     info!(log, "Server Started on localhost:8080");
     server::new(move || {
         App::with_state(AppState {
-            //jwt: jwt.to_string(),
             log: log.clone(),
         })
         .scope("/rest/v1", |v1_scope| {
@@ -56,20 +42,14 @@ fn main() {
                 activities_scope
                     .resource("", |r| {
                         r.method(http::Method::GET).f(handlers::get_insults);
-                        /*r.method(http::Method::POST)
-                            .with_config(handlers::create_activity, |cfg| {
+                        r.method(http::Method::POST)
+                            .with_config(handlers::create_insult, |cfg| {
                                 (cfg.0).1.error_handler(handlers::json_error_handler);
-                            })*/
+                            })
                     })
-                    /*.resource("/{activity_id}", |r| {
-                        r.method(http::Method::GET).with(handlers::get_activity);
-                        r.method(http::Method::DELETE)
-                            .with(handlers::delete_activity);
-                        r.method(http::Method::PATCH)
-                            .with_config(handlers::edit_activity, |cfg| {
-                                (cfg.0).1.error_handler(handlers::json_error_handler);
-                            });
-                    })*/
+                    .resource("/{activity_id}", |r| {
+                        r.method(http::Method::GET).with(handlers::get_insults_by_language);
+                    })
             })
         })
         .resource("/health", |r| {

@@ -1,12 +1,8 @@
-use super::data::{
-    ActivitiesResponse, ActivityRequest, ActivityResponse, EditActivityRequest, ErrorListResponse,
-};
-use super::external;
 use super::insults;
 use super::AppState;
 use actix_web::{error, Error, HttpRequest, HttpResponse, Json, Path, Responder};
 use failure::Fail;
-use crate::data::InsultResponse;
+use crate::data::{InsultResponse, InsultRequest};
 
 #[derive(Fail, Debug)]
 pub enum AnalyzerError {
@@ -43,19 +39,6 @@ pub fn json_error_handler(err: error::JsonPayloadError, _: &HttpRequest<AppState
     .into()
 }
 
-pub fn get_activities(
-    req: &HttpRequest<AppState>,
-) -> Result<Json<ActivitiesResponse>, AnalyzerError> {
-    //let jwt = &req.state().jwt;
-    let log = &req.state().log;
-    external::get_activities()
-        .map_err(|e| {
-            error!(log, "Get Activities ExternalServiceError {}", e);
-            AnalyzerError::ExternalServiceError
-        })
-        .map(Json)
-}
-
 pub fn get_insults(
     req: &HttpRequest<AppState>,
 ) -> Result<Json<InsultResponse>, AnalyzerError> {
@@ -69,56 +52,26 @@ pub fn get_insults(
         .map(Json)
 }
 
-pub fn get_activity(
-    (req, activity_id): (HttpRequest<AppState>, Path<String>),
-) -> Result<Json<ActivityResponse>, AnalyzerError> {
+pub fn get_insults_by_language(
+    (req, language): (HttpRequest<AppState>, Path<String>),
+) -> Result<Json<InsultResponse>, AnalyzerError> {
     let log = &req.state().log;
-    external::get_activity(&activity_id)
+    insults::get_insult_by_languange(&language)
         .map_err(|e| {
             error!(log, "Get Activity Error: {}", e);
-            e
+            AnalyzerError::ExternalServiceError
         })
         .map(Json)
 }
 
-pub fn create_activity(
-    (req, activity): (HttpRequest<AppState>, Json<ActivityRequest>),
-) -> Result<Json<ActivityResponse>, AnalyzerError> {
+pub fn create_insult(
+    (req, insult): (HttpRequest<AppState>, Json<InsultRequest>),
+) -> Result<Json<InsultResponse>, AnalyzerError> {
     let log = &req.state().log;
-    info!(log, "creating activity {:?}", activity);
-    external::create_activity(&activity)
+    info!(log, "creating insult {:?}", insult);
+    insults::create_insult(&insult)
         .map_err(|e| {
             error!(log, "Create Activity ExternalServiceError {}", e);
-            AnalyzerError::ExternalServiceError
-        })
-        .map(Json)
-}
-
-pub fn edit_activity(
-    (req, activity, activity_id): (
-        HttpRequest<AppState>,
-        Json<EditActivityRequest>,
-        Path<String>,
-    ),
-) -> Result<Json<ActivityResponse>, AnalyzerError> {
-    let log = &req.state().log;
-    info!(log, "editing activity {:?}", activity);
-    external::edit_activity(&activity_id, &activity)
-        .map_err(|e| {
-            error!(log, "Edit Activity ExternalServiceError {}", e);
-            AnalyzerError::ExternalServiceError
-        })
-        .map(Json)
-}
-
-pub fn delete_activity(
-    (req, activity_id): (HttpRequest<AppState>, Path<String>),
-) -> Result<Json<ErrorListResponse>, AnalyzerError> {
-    let log = &req.state().log;
-    info!(log, "deleting activity {}", activity_id);
-    external::delete_activity(&activity_id)
-        .map_err(|e| {
-            error!(log, "Delete Activity ExternalServiceError {}", e);
             AnalyzerError::ExternalServiceError
         })
         .map(Json)
