@@ -1,8 +1,8 @@
-use super::insults;
 use super::AppState;
 use actix_web::{error, Error, HttpRequest, HttpResponse, Json, Path, Responder};
 use failure::Fail;
-use crate::data::{InsultResponse, InsultRequest};
+use crate::domain::models;
+use crate::clients::insults;
 
 #[derive(Fail, Debug)]
 pub enum AnalyzerError {
@@ -41,10 +41,12 @@ pub fn json_error_handler(err: error::JsonPayloadError, _: &HttpRequest<AppState
 
 pub fn get_insults(
     req: &HttpRequest<AppState>,
-) -> Result<Json<InsultResponse>, AnalyzerError> {
-    //let jwt = &req.state().jwt;
+) -> Result<Json<models::InsultResponse>, AnalyzerError> {
     let log = &req.state().log;
-    insults::get_insult()
+
+    let insult_client = insults::new(reqwest::Client::new());
+
+    insult_client.get_insult()
         .map_err(|e| {
             error!(log, "Get Insults ExternalServiceError {}", e);
             AnalyzerError::ExternalServiceError
@@ -54,9 +56,12 @@ pub fn get_insults(
 
 pub fn get_insults_by_language(
     (req, language): (HttpRequest<AppState>, Path<String>),
-) -> Result<Json<InsultResponse>, AnalyzerError> {
+) -> Result<Json<models::InsultResponse>, AnalyzerError> {
     let log = &req.state().log;
-    insults::get_insult_by_languange(&language)
+
+    let insult_client = insults::new(reqwest::Client::new());
+
+    insult_client.get_insult_by_languange(&language)
         .map_err(|e| {
             error!(log, "Get Activity Error: {}", e);
             AnalyzerError::ExternalServiceError
@@ -65,11 +70,14 @@ pub fn get_insults_by_language(
 }
 
 pub fn create_insult(
-    (req, insult): (HttpRequest<AppState>, Json<InsultRequest>),
-) -> Result<Json<InsultResponse>, AnalyzerError> {
+    (req, insult): (HttpRequest<AppState>, Json<models::InsultRequest>),
+) -> Result<Json<models::InsultResponse>, AnalyzerError> {
     let log = &req.state().log;
     info!(log, "creating insult {:?}", insult);
-    insults::create_insult(&insult)
+
+    let insult_client = insults::new(reqwest::Client::new());
+
+    insult_client.create_insult(&insult)
         .map_err(|e| {
             error!(log, "Create Activity ExternalServiceError {}", e);
             AnalyzerError::ExternalServiceError

@@ -18,7 +18,8 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
 
-mod data;
+mod domain;
+mod clients;
 mod handlers;
 mod logging;
 mod insults;
